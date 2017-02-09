@@ -89,18 +89,21 @@ const renderHtml = (state, body) => {
   return `<!DOCTYPE html>${html}`;
 };
 
-const render = async (req: Object, res: Object, next: Function) => {
+const render = async (ctx: Object, next: Function) => {
+  const { request: req, response: res } = ctx;
   const found = configureFound(Root.routeConfig, new ServerProtocol(req.url));
   const store = createStore(found, req);
   try {
     await found.getRenderArgs(store, renderArgs => {
       const body = renderBody(renderArgs, store);
       const html = renderHtml(store.getState(), body);
-      res.status(renderArgs.error ? renderArgs.error.status : 200).send(html);
+      res.status = renderArgs.error ? renderArgs.error.status : 200;
+      res.body = html;
     });
   } catch (error) {
     if (error instanceof RedirectException) {
-      res.redirect(302, store.farce.createHref(error.location));
+      res.status = 302;
+      res.redirect(store.farce.createHref(error.location));
       return;
     }
     next(error);
